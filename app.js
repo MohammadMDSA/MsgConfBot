@@ -41,7 +41,10 @@ bot.dialog('main', [
 			db.find('userMessages', {}, (result) => {
 				result.forEach((item) => {
 					let msg = item.message;
-					item.message.text += '\n\n\n/accept' + item.msgId + '\n/decline' + item.msgId;
+					if (msg.text !== '')
+						item.message.text += '\n\n\n/accept' + item.msgId + '\n/decline' + item.msgId;
+					else
+						msg.attachments[0].name += '\n\n\n/accept' + item.msgId + '\n/decline' + item.msgId;
 					session.send(msg);
 				});
 			});
@@ -57,4 +60,14 @@ bot.dialog('end', (session) => {
 })
 	.triggerAction({
 		matches: /^end$/i
+	});
+
+bot.dialog('acceptMessage', (session) => {
+	if (session.message.address.conversation.id === process.env.TARGET_GROUP_ID) {
+		let id = session.message.text.split('/accept')[0];
+		session.send('data is ' + id);
+	}
+})
+	.triggerAction({
+		matches: /^(\/accept)[0-9]+/i
 	});
