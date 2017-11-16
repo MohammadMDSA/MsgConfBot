@@ -19,15 +19,12 @@ let connector = new ChatConnector({
 server.post('api/messages', connector.listen());
 
 let bot = new UniversalBot(connector, (session, args) => {
-	db.insert('messages', session.message, () => {
-		session.send('done');
-	});
 	session.beginDialog('root');
 });
 
 bot.dialog('root', (session) => {
-	if(session.message.address.conversation.id === process.env.TARGET_GROUP_ID)
-		session.beginDialog('main');
+	if (session.message.address.conversation.id === process.env.TARGET_GROUP_ID)
+		session.send('use commands');
 	else
 		session.send('Got an invalid user(group)');
 })
@@ -38,9 +35,22 @@ bot.dialog('root', (session) => {
 
 bot.dialog('main', [
 	(session) => {
-		session.send('Got a valid one');
+		if (session.message.address.conversation.id === process.env.TARGET_GROUP_ID) {
+			session.sendTyping();
+			session.send('getting updates');
+			db.find('userMessages', {}, (result) => {
+				result.forEach((item) => {
+					let msg = item.message;
+					item.message.text += '\n\n\n/accept' + item.msgId + '\n/decline' + item.msgId;
+					session.send(msg);
+				});
+			});
+		}
 	}
-]);
+]).
+	triggerAction({
+		matches: /^\/get$/i
+	});
 
 bot.dialog('end', (session) => {
 	session.endConversation('The End');
