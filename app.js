@@ -18,6 +18,33 @@ let connector = new ChatConnector({
 });
 server.post('api/messages', connector.listen());
 
-let bot = new UniversalBot(connector, (session) => {
-	// Bot codes goes here...
+let bot = new UniversalBot(connector, (session, args) => {
+	db.insert('messages', session.message, () => {
+		session.send('done');
+	});
+	session.beginDialog('root');
 });
+
+bot.dialog('root', (session) => {
+	if(session.message.address.conversation.id === process.env.TARGET_GROUP_ID)
+		session.beginDialog('main');
+	else
+		session.send('Got an invalid user(group)');
+})
+	.triggerAction({
+		matches: /^start$/i
+	});
+
+
+bot.dialog('main', [
+	(session) => {
+		session.send('Got a valid one');
+	}
+]);
+
+bot.dialog('end', (session) => {
+	session.endConversation('The End');
+})
+	.triggerAction({
+		matches: /^end$/i
+	});
